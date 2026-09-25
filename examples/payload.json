@@ -1,0 +1,29 @@
+{
+  "session_id": "example-session",
+  "cwd": "/path/to/my-repo",
+  "workspace": {"current_dir": "/path/to/my-repo"},
+  "model": {"display_name": "Opus 4.7"},
+  "effort": {"level": "high"},
+  "thinking": {"enabled": true},
+  "cost": {
+    "total_cost_usd": 4.2,
+    "total_duration_ms": 4320000,
+    "total_lines_added": 156,
+    "total_lines_removed": 23
+  },
+  "context_window": {
+    "context_window_size": 200000,
+    "used_percentage": 34,
+    "remaining_percentage": 66
+  },
+  "exceeds_200k_tokens": false,
+  "rate_limits": {
+    "five_hour": {"used_percentage": 23.5},
+    "seven_day": {"used_percentage": 41.2}
+  },
+  "pr": {
+    "number": 1234,
+    "url": "https://github.com/example/my-repo/pull/1234",
+    "review_state": "pending"
+  }
+}
