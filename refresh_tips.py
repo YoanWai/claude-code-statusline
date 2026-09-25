@@ -341,7 +341,7 @@ def cmd_ai(pool):
     try:
         process = subprocess.run(
             [claude, "-p", prompt,
-             "--model", "sonnet", "--permission-mode", "bypassPermissions",
+             "--model", "sonnet", "--tools", "",
              "--output-format", "json", "--json-schema", AI_SCHEMA],
             capture_output=True, text=True, timeout=300, stdin=subprocess.DEVNULL,
         )
