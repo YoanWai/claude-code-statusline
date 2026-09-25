@@ -24,8 +24,8 @@ Point `cwd` in the payload at a real repository to exercise the git segment. The
 `refresh_tips.py` writes to `~/.claude/statusline-tips/pool.json`. Point `HOME` at a scratch directory to keep your real pool untouched:
 
 ```sh
-HOME=/tmp/tipline-test python3 refresh_tips.py
-cat /tmp/tipline-test/.claude/statusline-tips/pool.json
+HOME=/tmp/statusline-test python3 refresh_tips.py
+cat /tmp/statusline-test/.claude/statusline-tips/pool.json
 ```
 
 ## Before you open a pull request

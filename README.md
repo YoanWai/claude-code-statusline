@@ -1,4 +1,4 @@
-# claude-tipline
+# claude-code-statusline
 
 A three-line status line for [Claude Code](https://code.claude.com) with a rotating tips line that teaches you a new command every 45 seconds.
 
@@ -37,8 +37,8 @@ Every line adapts to the terminal width. The context bar wraps to its own row wh
 Requires Python 3.7+ and git.
 
 ```sh
-git clone https://github.com/YoanWai/claude-tipline
-cd claude-tipline
+git clone https://github.com/YoanWai/claude-code-statusline
+cd claude-code-statusline
 ./install.sh
 ```
 
