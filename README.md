@@ -2,11 +2,7 @@
 
 A three-line status line for [Claude Code](https://code.claude.com) with a rotating tips line that teaches you a new command every 45 seconds.
 
-```
-▎ ◆ Opus 4.7 ✦ high  ┈  my-repo  ┈  main ✓ ↑2  ┈  ▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱ 34% 68k/200k ⟳ 38%
-▎ ⏱ 1h12m ◎ $4.20  ┈  ⚡ 23% 2h01m ↯ 41% 3d05h  ┈  ▲ 156 ▼ 23 +2 ~1  ┈  ⇄ #1234●
-▎ ✧ /rewind  restore code or chat to an earlier checkpoint
-```
+![Three-line status line: model and git and context bar, then cost and rate limits and changes and PR, then a tip](docs/screenshot.png)
 
 ## What it shows
 
