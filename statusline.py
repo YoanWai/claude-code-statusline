@@ -2,7 +2,7 @@
 """Claude Code status line.
 
 Line 1: ◆ Model ✦ effort ┈ directory ┈ branch ✓ ↑1 ↓2 ┈ ▰▰▰▰▱▱▱ 42% 84k/200k ⟳ 30%
-Line 2: ⏱ duration ◎ $cost ┈ ⚡ 5h% ↯ 7d% ┈ ▲ added ▼ removed +staged ~unstaged ┈ ⇄ #PR✓ ┈ ▸ task
+Line 2: ⏱ duration ◎ $cost ┈ ⚡ 5h% ↯ 7d% ✶ Fable% ┈ ▲ added ▼ removed +staged ~unstaged ┈ ⇄ #PR✓ ┈ ▸ task
 Line 3: ✧ rotating tip read from ~/.claude/statusline-tips/pool.json
 """
 
@@ -16,6 +16,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -23,6 +24,8 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 GIT_CACHE_TTL = 0.8
 USAGE_CACHE_TTL = 300
 STALE_USAGE_TTL = 86400
+USAGE_CACHE_KEY = "claude_usage_limits"
+FABLE_MODEL_NAME = "Fable"
 PR_DISPLAY_MAX = 4
 CACHE_DIR = Path(tempfile.gettempdir()) / "claude-statusline-cache"
 SHOW_STAGED_UNSTAGED_COUNTS = True
@@ -260,13 +263,27 @@ def _oauth_token():
     return os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
 
 
+def _iso_to_epoch(timestamp):
+    if not timestamp:
+        return None
+    return datetime.fromisoformat(timestamp).timestamp()
+
+
+def _model_weekly_limit(limits, model_name):
+    for row in limits or []:
+        model = (row.get("scope") or {}).get("model") or {}
+        if row.get("kind") == "weekly_scoped" and model.get("display_name") == model_name:
+            return row
+    return None
+
+
 def _fetch_usage():
-    cached = _read_cache("claude_usage", USAGE_CACHE_TTL)
+    cached = _read_cache(USAGE_CACHE_KEY, USAGE_CACHE_TTL)
     if cached is not None:
         return cached
     token = _oauth_token()
     if not token:
-        return _read_cache("claude_usage", STALE_USAGE_TTL)
+        return _read_cache(USAGE_CACHE_KEY, STALE_USAGE_TTL)
     try:
         request = urllib.request.Request("https://api.anthropic.com/api/oauth/usage", method="GET")
         request.add_header("Accept", "application/json")
@@ -276,37 +293,41 @@ def _fetch_usage():
         request.add_header("User-Agent", "claude-code/2.0.32")
         with urllib.request.urlopen(request, timeout=3.0) as response:
             data = json.loads(response.read().decode())
+        fable = _model_weekly_limit(data.get("limits"), FABLE_MODEL_NAME) or {}
         usage = {
             "five_hour": data.get("five_hour", {}).get("utilization"),
             "seven_day": data.get("seven_day", {}).get("utilization"),
+            "fable": fable.get("percent"),
+            "fable_reset": _iso_to_epoch(fable.get("resets_at")),
         }
-        _write_cache("claude_usage", usage)
+        _write_cache(USAGE_CACHE_KEY, usage)
         return usage
-    except (urllib.error.URLError, json.JSONDecodeError, OSError):
-        return _read_cache("claude_usage", STALE_USAGE_TTL)
+    except (urllib.error.URLError, json.JSONDecodeError, OSError, ValueError):
+        return _read_cache(USAGE_CACHE_KEY, STALE_USAGE_TTL)
 
 
 def _rate_limits(data):
-    """Rate limits from the payload, else from the usage API (older Claude Code versions)."""
+    """5h and 7d from the payload (usage API on older versions). Per-model rows like Fable exist only in the usage API."""
+    usage = _fetch_usage() or {}
+    limits = {
+        "five_hour": usage.get("five_hour"),
+        "seven_day": usage.get("seven_day"),
+        "five_reset": None,
+        "seven_reset": None,
+        "fable": usage.get("fable"),
+        "fable_reset": usage.get("fable_reset"),
+    }
     payload = data.get("rate_limits") or {}
     five_hour = payload.get("five_hour") or {}
     seven_day = payload.get("seven_day") or {}
     if five_hour.get("used_percentage") is not None or seven_day.get("used_percentage") is not None:
-        return {
-            "five_hour": five_hour.get("used_percentage"),
-            "seven_day": seven_day.get("used_percentage"),
-            "five_reset": five_hour.get("resets_at"),
-            "seven_reset": seven_day.get("resets_at"),
-        }
-    usage = _fetch_usage()
-    if usage:
-        return {
-            "five_hour": usage.get("five_hour"),
-            "seven_day": usage.get("seven_day"),
-            "five_reset": None,
-            "seven_reset": None,
-        }
-    return None
+        limits.update(
+            five_hour=five_hour.get("used_percentage"),
+            seven_day=seven_day.get("used_percentage"),
+            five_reset=five_hour.get("resets_at"),
+            seven_reset=seven_day.get("resets_at"),
+        )
+    return limits
 
 
 def _format_reset(resets_at):
@@ -596,9 +617,11 @@ def _line2_clusters(data, git):
     if cost_usd:
         time_cost.append(f"{TEAL}◎ {RESET}{_cost_color(cost_usd)}${cost_usd:.2f}{RESET}")
 
-    limits = _rate_limits(data) or {}
-    rates.append(_rate_segment(YELLOW, "⚡", limits.get("five_hour"), limits.get("five_reset")))
-    rates.append(_rate_segment(PURPLE, "↯", limits.get("seven_day"), limits.get("seven_reset")))
+    limits = _rate_limits(data)
+    rates.append(_rate_segment(YELLOW, "⚡", limits["five_hour"], limits["five_reset"]))
+    rates.append(_rate_segment(PURPLE, "↯", limits["seven_day"], limits["seven_reset"]))
+    if limits["fable"] is not None:
+        rates.append(_rate_segment(TEAL, "✶", limits["fable"], limits["fable_reset"]))
 
     lines_added = cost_data.get("total_lines_added") or 0
     lines_removed = cost_data.get("total_lines_removed") or 0

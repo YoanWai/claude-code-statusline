@@ -17,7 +17,7 @@ A three-line status line for [Claude Code](https://code.claude.com) with a rotat
 **Line 2**
 
 - Session duration and cost.
-- 5-hour ⚡ and 7-day ↯ rate limits with a countdown to reset.
+- 5-hour ⚡ and 7-day ↯ rate limits with a countdown to reset, plus the weekly Fable ✶ limit when your plan has one.
 - Lines added ▲ and removed ▼ this session, plus staged and unstaged file counts.
 - Pull requests seen this session with their review state (✓ approved, ● pending, ✗ changes requested, ◌ draft).
 - The task Claude is working on right now.
@@ -75,7 +75,7 @@ The knobs live at the top of `statusline.py`: bar width, truncation widths, tip 
 
 ## How it works
 
-Claude Code pipes a JSON payload to the script on every render. The script reads model, cost, context, rate limit, and PR data straight from that payload, shells out to `git status` for branch state (cached for 0.8s), and reads the tip pool from disk. On Claude Code versions that omit `rate_limits`, it falls back to the usage API with the local OAuth token and caches the result for five minutes.
+Claude Code pipes a JSON payload to the script on every render. The script reads model, cost, context, rate limit, and PR data straight from that payload, shells out to `git status` for branch state (cached for 0.8s), and reads the tip pool from disk. The weekly Fable limit, and the 5-hour and 7-day limits on Claude Code versions that omit `rate_limits`, come from the usage API with the local OAuth token, cached for five minutes.
 
 Tested on macOS. The Linux and WSL credential paths are in place and unverified. Windows is untested.
 
